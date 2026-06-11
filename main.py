@@ -9,9 +9,8 @@ import json
 import os
 from dotenv import load_dotenv
 
-# Load environment variables only in development
-if os.environ.get('FLASK_ENV') != 'production':
-    load_dotenv()
+# Load environment variables
+load_dotenv()
 
 # MY db connection
 local_server= True
@@ -37,9 +36,14 @@ login_manager.login_view='login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Database configuration for Vercel
-database_url = os.environ.get('DATABASE_URL', 'mysql://root:@localhost/hmdbms')
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+# Database configuration for Vercel - uses SQLite for easy deployment
+database_url = os.environ.get('DATABASE_URL', 'sqlite:///hospital.db')
+# Fix SQLite URL format for SQLAlchemy
+if database_url.startswith('sqlite'):
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db=SQLAlchemy(app)
@@ -82,6 +86,13 @@ class Trigr(db.Model):
     name=db.Column(db.String(50))
     action=db.Column(db.String(50))
     timestamp=db.Column(db.String(50))
+
+# Create tables if they don't exist
+with app.app_context():
+    try:
+        db.create_all()
+    except Exception as e:
+        print(f"Error creating tables: {e}")
 
 # here we will pass endpoints and run the fuction
 @app.route('/')
