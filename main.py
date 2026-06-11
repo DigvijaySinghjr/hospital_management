@@ -9,8 +9,9 @@ import json
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables only in development
+if os.environ.get('FLASK_ENV') != 'production':
+    load_dotenv()
 
 # MY db connection
 local_server= True
@@ -230,8 +231,8 @@ def test():
     try:
         Test.query.all()
         return 'My database is Connected'
-    except:
-        return 'My db is not Connected'
+    except Exception as e:
+        return f'My db is not Connected: {str(e)}'
 
 @app.route('/details')
 @login_required
