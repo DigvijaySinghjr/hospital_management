@@ -6,11 +6,16 @@ from flask_login import login_user,logout_user,login_manager,LoginManager
 from flask_login import login_required,current_user
 # from flask_mail import Mail
 import json
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # MY db connection
 local_server= True
 app = Flask(__name__)
-app.secret_key='hmsprojects'
+app.secret_key = os.environ.get('SECRET_KEY', 'hmsprojects')
 
 # this is for getting unique user access
 login_manager=LoginManager(app)
@@ -31,9 +36,10 @@ login_manager.login_view='login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-#
-app.config['SQLALCHEMY_DATABASE_URL']='mysql://username:password@localhost/databas_table_name'
-app.config['SQLALCHEMY_DATABASE_URI']='mysql://root:@localhost/hmdbms'
+# Database configuration for Vercel
+database_url = os.environ.get('DATABASE_URL', 'mysql://root:@localhost/hmdbms')
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db=SQLAlchemy(app)
 
@@ -113,12 +119,12 @@ def patient():
         if len(number)<10 or len(number)>10:
             flash("Please give 10 digit number")
             return render_template('patient.html',doct=doct)
-        # query=db.engine.execute(f"INSERT INTO `patients` (`email`,`name`,`gender`,`slot`,`disease`,`time`,`date`,`dept`,`number`) VALUES ('{email}','{name}','{gender}','{slot}','{disease}','{time}','{date}','{dept}','{number}')")
+        # query=db.engine.execute(f"INSERT INTO `patients` (`email`,`name`,`gender`,`slot`,`disease`,`time`,`date`,`dept`,`number`) VALUES ('{email}','{name}','{gender}','{slot}','{disease}','{ti[...]
         query=Patients(email=email,name=name,gender=gender,slot=slot,disease=disease,time=time,date=date,dept=dept,number=number)
         db.session.add(query)
         db.session.commit()
         # mail starts from here
-        # mail.send_message(subject, sender=params['gmail-user'], recipients=[email],body=f"YOUR bOOKING IS CONFIRMED THANKS FOR CHOOSING US \nYour Entered Details are :\nName: {name}\nSlot: {slot}")
+        # mail.send_message(subject, sender=params['gmail-user'], recipients=[email],body=f"YOUR bOOKING IS CONFIRMED THANKS FOR CHOOSING US \nYour Entered Details are :\nName: {name}\nSlot: {slo[...]
         flash("Booking Confirmed","info")
         return render_template('patient.html',doct=doct)
     return render_template('patient.html',doct=doct)
@@ -150,7 +156,7 @@ def edit(pid):
         date=request.form.get('date')
         dept=request.form.get('dept')
         number=request.form.get('number')
-        # db.engine.execute(f"UPDATE `patients` SET `email` = '{email}', `name` = '{name}', `gender` = '{gender}', `slot` = '{slot}', `disease` = '{disease}', `time` = '{time}', `date` = '{date}', `dept` = '{dept}', `number` = '{number}' WHERE `patients`.`pid` = {pid}")
+        # db.engine.execute(f"UPDATE `patients` SET `email` = '{email}', `name` = '{name}', `gender` = '{gender}', `slot` = '{slot}', `disease` = '{disease}', `time` = '{time}', `date` = '{date}'[...]
         post=Patients.query.filter_by(pid=pid).first()
         post.email=email
         post.name=name
@@ -246,4 +252,7 @@ def search():
         else:
             flash("Doctor is Not Available","danger")
     return render_template('index.html')
-app.run(debug=True)
+
+# Only run the development server if this file is run directly (not through Vercel)
+if __name__ == '__main__':
+    app.run(debug=os.environ.get('FLASK_DEBUG', False))
